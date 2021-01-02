@@ -3,11 +3,9 @@
 
 DesCalc::DesCalc(quint64 key) {
     this->Key_64 = key;
-    Key_Sub = new quint48[16];
 }
 
 DesCalc::~DesCalc() {
-    delete [] Key_Sub;
 }
 
 /**
@@ -19,12 +17,13 @@ DesCalc::~DesCalc() {
 
 quint64 DesCalc::Encrypt(quint64 Text) {
     qDebug("mText %llx", Text);
-    quint64 M0 = IP_Substitute(Text); // 初始置换
+    this->M_Text = Text;
+    this->M0_Text = IP_Substitute(Text); // 初始置换
     //quint48 * Key_Sub = new quint48[16];
     Key_Gen(Key_64);
-    quint64 RL = T_Iteration(M0); //16轮循环
-    quint64 C = IP_Inv_Substitute(RL); //终结置换
-    return C;
+    this->M_RL = T_Iteration(this->M0_Text); //16轮循环
+    this->C_Text = IP_Inv_Substitute(this->M_RL); //终结置换
+    return C_Text;
 }
 
 /**
@@ -39,8 +38,8 @@ quint64 DesCalc::Decrypt(quint64 Text) {
     //quint48 * Key_Sub = new quint48[16];
     Key_Gen(Key_64);
     Key_Inv();
-    quint64 RL = T_Iteration(C0);
-    quint64 M = IP_Inv_Substitute(RL);
+    this->M_RL = T_Iteration(C0);
+    quint64 M = IP_Inv_Substitute(this->M_RL);
     return M;
 }
 
@@ -69,16 +68,13 @@ quint64 DesCalc::IP_Substitute(quint64 M) {
  */
 void DesCalc::Key_Gen(quint64 Key_64) {
     qDebug("i Key64: %llx\n", Key_64);
-    quint56 Key_56 = Key_64_To_56(Key_64);
+    this->Key_56 = Key_64_To_56(Key_64);
     qDebug("i Key56: %llx\n", Key_56);
     quint28 C, D;
-    /*
-    for (int i = 0; i < 28; i++) {
-        C[i] = Key_56[i];
-        D[i] = Key_56[i + 28];
-    }*/
     C = Key_56 & ((1 << 28) - 1);
     D = Key_56 >> 28;
+    this->Key_C[0] = C;
+    this->Key_D[0] = D;
     qDebug("C: %x\n", C);
     qDebug("D: %x\n", D);
 
@@ -90,14 +86,11 @@ void DesCalc::Key_Gen(quint64 Key_64) {
             C = Key_28_Shift_Left(C, 2);
             D = Key_28_Shift_Left(D, 2);
         }
-        /*
-        for (int j = 0; j < 28; j++) {
-            Key_56[j] = C[j];
-            Key_56[j + 28] = D[j];
-        }*/
+        this->Key_C[i+1] = C;
+        this->Key_D[i+1] = D;
         Key_56 = C | (quint56)D<<28;
         qDebug("i Key:%d %llx\n", i, Key_56);
-        Key_Sub[i] = Key_56_To_48(Key_56);
+        this->Key_Sub[i] = Key_56_To_48(Key_56);
         qDebug("i Key:%d %llx\n", i, Key_Sub[i]);
     }
 }
@@ -124,17 +117,6 @@ quint32 DesCalc::Feistel(quint32 R, quint48 ki) {
     // 代换 选择 (S盒)
     // 分为8组, 每组6bit输入,4bit输出
     for (int i = 7; i >= 0; i--) {
-  /*
-405c446810
-0 0 14
-0 2 8
-1 0 13
-0 14 4
-1 8 5
-0 3 15
-2 0 1
-0 8 10
-*/
         int lowbit_6 = result & ((1ul << 6) - 1);
         //qDebug("lowbit6 %x\n", lowbit_6);
         result >>= 6;
@@ -146,7 +128,6 @@ quint32 DesCalc::Feistel(quint32 R, quint48 ki) {
         F_S |= s_out << ((7-i) << 2);
     }
     //qDebug("F_S %x\n", F_S);
-    //F_S = 0xe8d45f1aul;
     quint32 F_P = P_Substitute(F_S); // 置换(P)
     //qDebug("F_P %x\n", F_P);
     return F_P;
@@ -186,17 +167,17 @@ quint32 DesCalc::P_Substitute(quint32 F_S) {
  */
 quint64 DesCalc::T_Iteration(quint64 M0) {
     quint32 L, R;
-    /*for (int i = 0; i < 32; i++) {
-        L[i] = M0[i];
-        R[i] = M0[i + 32];
-    }*/
     R = M0 & ((1ul << 32) - 1);
     L = M0 >> 32;
+    this->M_R[0] = R;
+    this->M_L[0] = L;
     //qDebug("L: %x R:%x\n", L, R);
     for (int i = 0; i < 16; i++) {
         quint32 L_Next(R);
         R = L ^ Feistel(R, Key_Sub[i]);
         L = L_Next;
+        this->M_R[i+1] = R;
+        this->M_L[i+1] = L;
         qDebug("L: %x R:%x\n", L, R);
     }
     // swap L,R
@@ -205,6 +186,12 @@ quint64 DesCalc::T_Iteration(quint64 M0) {
     return RL;
 }
 
+/**
+ * @brief DesCalc::IP_Inv_Substitute
+ * @param RL
+ * @return C
+ * 逆初始置换
+ */
 quint64 DesCalc::IP_Inv_Substitute(quint64 RL) {
     quint64 C = 0;
     /*

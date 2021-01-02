@@ -26,9 +26,18 @@ private:
     quint48 Key_56_To_48(quint56 Key_56);
     void Key_Gen(quint64 Key_64);
     void Key_Inv();
-private:
-    quint64 Key_64;
-    quint48 *Key_Sub;
+public:
+    quint64 Key_64; // 64 位密钥
+    quint56 Key_56; // 56 位压缩密钥
+    quint28 Key_C[17];
+    quint28 Key_D[17];
+    quint48 Key_Sub[16]; // 轮密钥
+    quint64 M_Text; //明文
+    quint64 M0_Text; // 明文经过初始置换
+    quint32 M_L[17];
+    quint32 M_R[17];
+    quint64 M_RL; //终结置换前的
+    quint64 C_Text; // 密文;
 };
 
 #endif // DESCALC_H
