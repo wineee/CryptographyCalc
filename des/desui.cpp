@@ -33,14 +33,23 @@ void DesUi::on_pushButton_Encrypt_clicked()
     QString str_Key = ui->lineEdit_Key->text();
     QByteArray bit_mText = str_mText.toLocal8Bit().toHex();
     QByteArray bit_Key = str_Key.toLocal8Bit().toHex();
-    quint64 Key_64 = bit_Key.toULongLong(nullptr, 16);
-    quint64 mText_64 = bit_mText.toULongLong(nullptr, 16);
+    bool succ = true;
+    quint64 Key_64 = bit_Key.toULongLong(&succ, 16);
+    if (!succ) {
+        QMessageBox::warning(this, tr("警告"), tr("密钥超出64位!"));
+        return;
+    }
+    quint64 mText_64 = bit_mText.toULongLong(&succ, 16);
+    if (!succ) {
+        QMessageBox::warning(this, tr("警告"), tr("明文超出64位!"));
+        return;
+    }
     if (des != nullptr)
         delete des;
     des = new DesCalc(Key_64);
     quint64 cText = des->Encrypt(mText_64);
-    qDebug() << bit_Key << " " << bit_mText << "\n";
-    qDebug("end:%llx %llx %llx", Key_64, mText_64, cText);
+    //qDebug() << bit_Key << " " << bit_mText << "\n";
+    //qDebug("end:%llx %llx %llx", Key_64, mText_64, cText);
     ui->lineEdit_cText->setText(QString("%1").arg(cText, 16, 16, QLatin1Char('0')).toUpper());
 }
 
@@ -127,25 +136,19 @@ void DesUi::on_pushButton_Decrypt_2_clicked()
         delete des2;
     des2 = new DesCalc(Key_64);
     QString str_cText = ui->textEdit_cText2->toPlainText();
-    //QByteArray b_cText = str_cText.toLocal8Bit().toHex();
     int clen = str_cText.length();
-    //QString str_mText = "";
     QByteArray mByte;
     mByte.resize(clen);
     for (int i = 0; i < clen; i += 16) {
         string s_sub_c = str_cText.toStdString().substr(i,16);
         quint64 m_sub_c = QString::fromStdString(s_sub_c).toULongLong(nullptr, 16);
-       // QMessageBox::warning(this, tr("警告"), QString::fromStdString(s_sub_c));
         quint64 m_sub_m = des2->Decrypt(m_sub_c);
-       // QMessageBox::warning(this, tr("警告"), QString::number(m_sub_m, 16));
 
         for (int j = 15; j >= 0; j--) {
             mByte[i+j] = HexBit_to_Ascii(m_sub_m % 16);
             m_sub_m /= 16;
-            //qDebug() << mByte << "\n";
         }
     }
-    qDebug() << mByte << "\n";
-    //qDebug("Debug: c %llx\n", m_subc);
+    //qDebug() << mByte << "\n";
     ui->textEdit_mText2->setText(QString::fromLocal8Bit(QByteArray::fromHex(mByte)));
 }

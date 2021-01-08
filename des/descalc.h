@@ -17,7 +17,7 @@ public:
 private:
     quint64 IP_Substitute(quint64 M);
     quint64 IP_Inv_Substitute(quint64 RL);
-    quint32 Feistel(quint32 R, quint48 ki);
+    quint32 F_Func(quint32 R, quint48 ki);
     quint48 E_Expand(quint32 R);
     quint32 P_Substitute(quint32 F_S);
     quint64 T_Iteration(quint64 M0);

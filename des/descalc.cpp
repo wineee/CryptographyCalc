@@ -67,16 +67,16 @@ quint64 DesCalc::IP_Substitute(quint64 M) {
  * 密钥生成
  */
 void DesCalc::Key_Gen(quint64 Key_64) {
-    qDebug("i Key64: %llx\n", Key_64);
+    //qDebug("i Key64: %llx\n", Key_64);
     this->Key_56 = Key_64_To_56(Key_64);
-    qDebug("i Key56: %llx\n", Key_56);
+    //qDebug("i Key56: %llx\n", Key_56);
     quint28 C, D;
     C = Key_56 & ((1 << 28) - 1);
     D = Key_56 >> 28;
     this->Key_C[0] = C;
     this->Key_D[0] = D;
-    qDebug("C: %x\n", C);
-    qDebug("D: %x\n", D);
+    //qDebug("C: %x\n", C);
+    //qDebug("D: %x\n", D);
 
     for (int i = 0; i < 16; i++) {
         if (i == 0 || i == 1 || i == 8 || i == 15) {
@@ -89,15 +89,16 @@ void DesCalc::Key_Gen(quint64 Key_64) {
         this->Key_C[i+1] = C;
         this->Key_D[i+1] = D;
         Key_56 = C | (quint56)D<<28;
-        qDebug("i Key:%d %llx\n", i, Key_56);
+        //qDebug("i Key:%d %llx\n", i, Key_56);
         this->Key_Sub[i] = Key_56_To_48(Key_56);
-        qDebug("i Key:%d %llx\n", i, Key_Sub[i]);
+        //qDebug("i Key:%d %llx\n", i, Key_Sub[i]);
     }
 }
 
 /**
  * @brief DesCalc::Key_Inv
  * @param Key_Sub
+ * 解密时密钥反着用
  */
 void DesCalc::Key_Inv() {
     for (int i = 0; i < 8; i++) {
@@ -107,7 +108,14 @@ void DesCalc::Key_Inv() {
     }
 }
 
-quint32 DesCalc::Feistel(quint32 R, quint48 ki) {
+/**
+ * @brief DesCalc::F_Func
+ * @param R
+ * @param ki
+ * @return F_P
+ * 16轮迭代所需要的f函数
+ */
+quint32 DesCalc::F_Func(quint32 R, quint48 ki) {
     quint48 E_R = E_Expand(R); // 扩展置换(E表)
     //qDebug("E_R %llx\n", E_R);
     quint48 result = E_R ^ ki;
@@ -133,6 +141,12 @@ quint32 DesCalc::Feistel(quint32 R, quint48 ki) {
     return F_P;
 }
 
+/**
+ * @brief DesCalc::E_Expand
+ * @param R
+ * @return E_R
+ * E扩展置换，32->48
+ */
 DesCalc::quint48 DesCalc::E_Expand(quint32 R) {
     quint48 E_R = 0;
     /*for (int i = 0; i < 48; i++) {
@@ -145,6 +159,12 @@ DesCalc::quint48 DesCalc::E_Expand(quint32 R) {
     return E_R;
 }
 
+/**
+ * @brief DesCalc::P_Substitute
+ * @param F_S
+ * @return F_P
+ * P置换
+ */
 quint32 DesCalc::P_Substitute(quint32 F_S) {
     quint32 F_P = 0;
     /*
@@ -174,7 +194,7 @@ quint64 DesCalc::T_Iteration(quint64 M0) {
     //qDebug("L: %x R:%x\n", L, R);
     for (int i = 0; i < 16; i++) {
         quint32 L_Next(R);
-        R = L ^ Feistel(R, Key_Sub[i]);
+        R = L ^ F_Func(R, Key_Sub[i]);
         L = L_Next;
         this->M_R[i+1] = R;
         this->M_L[i+1] = L;
@@ -227,6 +247,13 @@ DesCalc::quint56 DesCalc::Key_64_To_56(quint64 Key_64) {
     return Key_56;
 }
 
+/**
+ * @brief DesCalc::Key_28_Shift_Left
+ * @param Key_56_Half
+ * @param num
+ * @return
+ * 循环左移num位
+ */
 DesCalc::quint28
 DesCalc::Key_28_Shift_Left(quint28 Key_56_Half, int num) {
     quint28 Key_28;
@@ -234,6 +261,12 @@ DesCalc::Key_28_Shift_Left(quint28 Key_56_Half, int num) {
     return Key_28 & ((1<<28)-1);
 }
 
+/**
+ * @brief DesCalc::Key_56_To_48
+ * @param Key_56
+ * @return
+ * 密钥 压缩型换位
+ */
 DesCalc::quint48
 DesCalc::Key_56_To_48(quint56 Key_56) {
     quint48 Key_48 = 0;
@@ -246,4 +279,3 @@ DesCalc::Key_56_To_48(quint56 Key_56) {
     }
     return Key_48;
 }
-
