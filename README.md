@@ -8,8 +8,8 @@
 
 
 
-![image-20210209172357161](/home/rewine/QtProject/CryptographyCalc/document/image-20210209172357161.png)
+![image-20210209172357161](/document/image-20210209172357161.png)
 
-![image-20210209172506748](/home/rewine/QtProject/CryptographyCalc/document/image-20210209172506748.png)
+![image-20210209172506748](/document/image-20210209172506748.png)
 
-![image-20210209172534579](/home/rewine/QtProject/CryptographyCalc/document/image-20210209172534579.png)
+![image-20210209172534579](/document/image-20210209172534579.png)
